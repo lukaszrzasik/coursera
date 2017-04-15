@@ -134,34 +134,21 @@ class Empty extends TweetSet {
 
 class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
 
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet =
-    if (p(this.elem)) right.filterAcc(p, left.filterAcc(p, acc.incl(this.elem)))
-    else right.filterAcc(p, left.filterAcc(p, acc))
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = {
+    if (p(elem)) left.filterAcc(p, right.filterAcc(p, acc.incl(elem)))
+    else left.filterAcc(p, right.filterAcc(p, acc))
+  }
   
   def union(that: TweetSet): TweetSet =
-    that.union(left).union(right).incl(elem)
+    if (this.isEmpty) that
+    else if (that.isEmpty) this
+    else this.filterAcc(tw => true, that)
     
   def mostRetweeted: Tweet = {
-    def greater(tw: Tweet): Tweet = 
-      if (tw.retweets > elem.retweets) tw
-      else elem
-
-    if (left.isEmpty && right.isEmpty) elem
-    else if (!left.isEmpty && right.isEmpty) greater(left.mostRetweeted)
-    else if (!right.isEmpty && left.isEmpty) greater(right.mostRetweeted)
-    else {
-      lazy val leftMost = left.mostRetweeted
-      lazy val rightMost = left.mostRetweeted
-      
-      if (elem.retweets > leftMost.retweets && elem.retweets > rightMost.retweets)
-        elem
-      else if (leftMost.retweets > rightMost.retweets && leftMost.retweets > elem.retweets)
-        leftMost
-      else 
-        rightMost
-    }
+    lazy val greaters = filter((t: Tweet) => t.retweets > elem.retweets)
+    if (greaters.isEmpty) elem
+    else greaters.mostRetweeted
   }
-
 
   /**
    * The following methods are already implemented
@@ -232,5 +219,5 @@ object GoogleVsApple {
 
 object Main extends App {
   // Print the trending tweets
-  GoogleVsApple.trending foreach println
+   GoogleVsApple.trending foreach println
 }
