@@ -142,7 +142,8 @@ class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
   def union(that: TweetSet): TweetSet =
     if (this.isEmpty) that
     else if (that.isEmpty) this
-    else this.filterAcc(tw => true, that)
+//    else this.filterAcc(tw => true, that)
+    else remove(elem).union(that.incl(elem))
     
   def mostRetweeted: Tweet = {
     lazy val greaters = filter((t: Tweet) => t.retweets > elem.retweets)
