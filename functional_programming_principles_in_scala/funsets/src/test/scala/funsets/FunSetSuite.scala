@@ -47,7 +47,7 @@ class FunSetSuite {
    * Once you finish your implementation of "singletonSet", remvoe the
    * @Ignore annotation.
    */
-  @Ignore("not ready yet") @Test def `singleton set one contains one`: Unit = {
+  @Test def `singleton set one contains one`: Unit = {
 
     /**
      * We create a new instance of the "TestSets" trait, this gives us access
@@ -71,7 +71,64 @@ class FunSetSuite {
     }
   }
 
+  @Test def `diff contains only elements from first set and not the other`: Unit = {
+    new TestSets {
+      val su = union(union(s1, s2), s3)
+      val s = diff(su, s3)
+      assert(contains(s, 1), "Diff 1")
+      assert(contains(s, 2), "Diff 2")
+      assert(!contains(s, 3), "Diff 3")
+    }
+  }
 
+  @Test def `diff contains only elements in both sets`: Unit = {
+    new TestSets {
+      val su = union(s1, s2)
+      val s = intersect(s1, su)
+      assert(contains(s, 1), "Intersect 1")
+      assert(!contains(s, 2), "Intersect 2")
+      assert(!contains(s, 3), "Intersect 3")
+    }
+  }
+
+  @Test def `filter contains only elements divisable by 3`: Unit = {
+    new TestSets {
+      val su = union(union(s1, s2), s3)
+      val s = filter(su, x => x % 3 == 0)
+      assert(!contains(s, 1), "Filter 1")
+      assert(!contains(s, 2), "Filter 2")
+      assert(contains(s, 3), "Filter 3")
+    }
+  }
+
+  @Test def `forall checks if all elements are divisable by 1, 2 and 3`: Unit = {
+    new TestSets {
+      val su = union(union(s1, s2), s3)
+      assert(forall(su, x => x % 1 == 0), "Forall 1")
+      assert(!forall(su, x => x % 2 == 0), "Forall 2")
+      assert(!forall(su, x => x % 3 == 0), "Forall 3")
+    }
+  }
+
+  @Test def `exists checks if there is at least one element are divisable by 1, 2, 3 and 4`: Unit = {
+    new TestSets {
+      val su = union(union(s1, s2), s3)
+      assert(exists(su, x => x % 1 == 0), "Forall 1")
+      assert(exists(su, x => x % 2 == 0), "Forall 2")
+      assert(exists(su, x => x % 3 == 0), "Forall 3")
+      assert(!exists(su, x => x % 4 == 0), "Forall 4")
+    }
+  }
+
+  @Test def `map transforms the set by multiplying elements by 2`: Unit = {
+    new TestSets {
+      val su = union(union(s1, s2), s3)
+      assert(contains(map(su, x => 2 * x), 2), "Map 1")
+      assert(contains(map(su, x => 2 * x), 4), "Map 2")
+      assert(contains(map(su, x => 2 * x), 6), "Map 3")
+      assert(!contains(map(su, x => 2 * x), 8), "Map 4")
+    }
+  }
 
   @Rule def individualTestTimeout = new org.junit.rules.Timeout(10 * 1000)
 }
