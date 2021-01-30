@@ -1,57 +1,47 @@
 package forcomp
 
-import org.scalatest.FunSuite
-
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-
-import Anagrams._
-
-@RunWith(classOf[JUnitRunner])
-class AnagramsSuite extends FunSuite  {
-
-  test("wordOccurrences: abcd") {
-    assert(wordOccurrences("abcd") === List(('a', 1), ('b', 1), ('c', 1), ('d', 1)))
-  }
-
-  test("wordOccurrences: Robert") {
-    assert(wordOccurrences("Robert") === List(('b', 1), ('e', 1), ('o', 1), ('r', 2), ('t', 1)))
-  }
+import org.junit._
+import org.junit.Assert.assertEquals
 
 
-  test("sentenceOccurrences: abcd e") {
-    assert(sentenceOccurrences(List("abcd", "e")) === List(('a', 1), ('b', 1), ('c', 1), ('d', 1), ('e', 1)))
-  }
+class AnagramsSuite {
+  import Anagrams._
+
+  @Test def `wordOccurrences: abcd (3pts)`: Unit =
+    assertEquals(List(('a', 1), ('b', 1), ('c', 1), ('d', 1)), wordOccurrences("abcd"))
+
+  @Test def `wordOccurrences: Robert (3pts)`: Unit =
+    assertEquals(List(('b', 1), ('e', 1), ('o', 1), ('r', 2), ('t', 1)), wordOccurrences("Robert"))
 
 
-  test("dictionaryByOccurrences.get: eat") {
-    assert(dictionaryByOccurrences.get(List(('a', 1), ('e', 1), ('t', 1))).map(_.toSet) === Some(Set("ate", "eat", "tea")))
-  }
+  @Test def `sentenceOccurrences: abcd e (5pts)`: Unit =
+    assertEquals(List(('a', 1), ('b', 1), ('c', 1), ('d', 1), ('e', 1)), sentenceOccurrences(List("abcd", "e")))
 
 
-  test("word anagrams: married") {
-    assert(wordAnagrams("married").toSet === Set("married", "admirer"))
-  }
+  @Test def `dictionaryByOccurrences.get: eat (10pts)`: Unit =
+    assertEquals(Some(Set("ate", "eat", "tea")), dictionaryByOccurrences.get(List(('a', 1), ('e', 1), ('t', 1))).map(_.toSet))
 
-  test("word anagrams: player") {
-    assert(wordAnagrams("player").toSet === Set("parley", "pearly", "player", "replay"))
-  }
+
+  @Test def `wordAnagrams married (2pts)`: Unit =
+    assertEquals(Set("married", "admirer"), wordAnagrams("married").toSet)
+
+  @Test def `wordAnagrams player (2pts)`: Unit =
+    assertEquals(Set("parley", "pearly", "player", "replay"), wordAnagrams("player").toSet)
 
 
 
-  test("subtract: lard - r") {
+  @Test def `subtract: lard - r (10pts)`: Unit = {
     val lard = List(('a', 1), ('d', 1), ('l', 1), ('r', 1))
     val r = List(('r', 1))
     val lad = List(('a', 1), ('d', 1), ('l', 1))
-    assert(subtract(lard, r) === lad)
+    assertEquals(lad, subtract(lard, r))
   }
 
 
-  test("combinations: []") {
-    assert(combinations(Nil) === List(Nil))
-  }
+  @Test def `combinations: [] (8pts)`: Unit =
+    assertEquals(List(Nil), combinations(Nil))
 
-  test("combinations: abba") {
+  @Test def `combinations: abba (8pts)`: Unit = {
     val abba = List(('a', 2), ('b', 2))
     val abbacomb = List(
       List(),
@@ -64,16 +54,16 @@ class AnagramsSuite extends FunSuite  {
       List(('a', 1), ('b', 2)),
       List(('a', 2), ('b', 2))
     )
-    assert(combinations(abba).toSet === abbacomb.toSet)
+    assertEquals(abbacomb.toSet, combinations(abba).toSet)
   }
 
 
-  test("sentence anagrams: []") {
+  @Test def `sentence anagrams: [] (10pts)`: Unit = {
     val sentence = List()
-    assert(sentenceAnagrams(sentence) === List(Nil))
+    assertEquals(List(Nil), sentenceAnagrams(sentence))
   }
 
-  test("sentence anagrams: Linux rulez") {
+  @Test def `sentence anagrams: Linux rulez (10pts)`: Unit = {
     val sentence = List("Linux", "rulez")
     val anas = List(
       List("Rex", "Lin", "Zulu"),
@@ -97,7 +87,9 @@ class AnagramsSuite extends FunSuite  {
       List("rulez", "Linux"),
       List("Linux", "rulez")
     )
-    assert(sentenceAnagrams(sentence).toSet === anas.toSet)
+    assertEquals(anas.toSet, sentenceAnagrams(sentence).toSet)
   }
 
+
+  @Rule def individualTestTimeout = new org.junit.rules.Timeout(10 * 1000)
 }
