@@ -3,16 +3,16 @@ package objsets
 object TweetReader {
 
   object ParseTweets {
-    import scala.util.parsing.json._
-    
-    def getList[T](s: String): List[T] =
-      JSON.parseFull(s).get.asInstanceOf[List[T]]
-
-    def getMap(s: String): Map[String, Any] =
-      JSON.parseFull(s).get.asInstanceOf[Map[String, Any]]
+    def regexParser(s: String): List[Map[String, Any]] = {
+      // In real life. you would use an actual JSON library...
+      val tweetRegex = """^\{ .*"user": "([^"]+)", "text": "([^"]+)", "retweets": ([\\.0-9]+) \},?$""".r
+      s.split("\r?\n").toList.tail.init.map {
+        case tweetRegex(user, text, retweets) => Map("user" -> user, "text" -> text, "retweets" -> retweets.toDouble)
+      }
+    }
 
     def getTweets(user: String, json: String): List[Tweet] =
-      for (map <- getList[Map[String, Any]](json)) yield {
+      for (map <- regexParser(json)) yield {
         val text = map("text")
         val retweets = map("retweet_count")
         new Tweet(user, text.toString, retweets.toString.toDouble.toInt)
@@ -20,7 +20,7 @@ object TweetReader {
 
     def getTweetData(user: String, json: String): List[Tweet] = {
       // is list
-      val l = getList[Map[String, Any]](json)
+      val l = regexParser(json)
       for (map <- l) yield {
         val text = map("text")
         val retweets = map("retweets")
@@ -45,7 +45,7 @@ object TweetReader {
   }
 
   val sites = List("gizmodo", "TechCrunch", "engadget", "amazondeals", "CNET", "gadgetlab", "mashable")
-  
+
   private val gizmodoTweets = TweetReader.ParseTweets.getTweetData("gizmodo", TweetData.gizmodo)
   private val techCrunchTweets = TweetReader.ParseTweets.getTweetData("TechCrunch", TweetData.TechCrunch)
   private val engadgetTweets = TweetReader.ParseTweets.getTweetData("engadget", TweetData.engadget)
@@ -53,7 +53,7 @@ object TweetReader {
   private val cnetTweets = TweetReader.ParseTweets.getTweetData("CNET", TweetData.CNET)
   private val gadgetlabTweets = TweetReader.ParseTweets.getTweetData("gadgetlab", TweetData.gadgetlab)
   private val mashableTweets = TweetReader.ParseTweets.getTweetData("mashable", TweetData.mashable)
-  
+
   private val sources = List(gizmodoTweets, techCrunchTweets, engadgetTweets, amazondealsTweets, cnetTweets, gadgetlabTweets, mashableTweets)
 
   val tweetMap: Map[String, List[Tweet]] =
@@ -66,14 +66,13 @@ object TweetReader {
                  (sites(6) -> mashableTweets))
 
   val tweetSets: List[TweetSet] = sources.map(tweets => toTweetSet(tweets))
-  
+
   private val siteTweetSetMap: Map[String, TweetSet] =
     Map() ++ (sites zip tweetSets)
 
-  private def unionOfAllTweetSets(curSets: List[TweetSet], acc: TweetSet): TweetSet = {
+  private def unionOfAllTweetSets(curSets: List[TweetSet], acc: TweetSet): TweetSet =
     if (curSets.isEmpty) acc
     else unionOfAllTweetSets(curSets.tail, acc.union(curSets.head))
-  }
 
   val allTweets: TweetSet = unionOfAllTweetSets(tweetSets, new Empty)
 }
