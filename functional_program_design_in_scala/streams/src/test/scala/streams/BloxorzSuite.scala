@@ -70,6 +70,20 @@ class BloxorzSuite {
       assertEquals(optsolution.length, solution.length)
     }
 
+  @Test def `neighbors with history at pos 1 for level 1`: Unit =
+    new Level1 {
+      assertEquals(neighborsWithHistory(Block(Pos(1,1),Pos(1,1)), List(Left,Up)).toSet, Set(
+        (Block(Pos(1,2),Pos(1,3)), List(Right,Left,Up)),
+        (Block(Pos(2,1),Pos(3,1)), List(Down,Left,Up))
+      ))
+    }
+
+  @Test def `all paths for level 1`: Unit =
+    new Level1 {
+      lazy val result = LazyList((Block(Pos(2,1),Pos(3,1)),List(Down)), (Block(Pos(1,2),Pos(1,3)),List(Right)), (Block(Pos(2,2),Pos(3,2)),List(Right, Down)), (Block(Pos(2,2),Pos(2,3)),List(Down, Right)), (Block(Pos(1,4),Pos(1,4)),List(Right, Right)))
+      assertEquals(result, from(LazyList((Block(startPos, startPos), List())), Set()) take 5)
+    }
+
 
   @Rule def individualTestTimeout = new org.junit.rules.Timeout(10 * 1000)
 }

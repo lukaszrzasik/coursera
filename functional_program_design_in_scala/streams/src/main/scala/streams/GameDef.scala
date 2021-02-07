@@ -79,7 +79,7 @@ trait GameDef {
    * This function returns the block at the start position of
    * the game.
    */
-  def startBlock: Block = ???
+  def startBlock: Block = Block(startPos, startPos)
 
 
   /**
@@ -130,22 +130,22 @@ trait GameDef {
      * Returns the list of blocks that can be obtained by moving
      * the current block, together with the corresponding move.
      */
-    def neighbors: List[(Block, Move)] = ???
+    def neighbors: List[(Block, Move)] = (left, Left) :: (right, Right) :: (up, Up) :: (down, Down) :: List()
 
     /**
      * Returns the list of positions reachable from the current block
      * which are inside the terrain.
      */
-    def legalNeighbors: List[(Block, Move)] = ???
+    def legalNeighbors: List[(Block, Move)] = neighbors filter (_._1.isLegal)
 
     /**
      * Returns `true` if the block is standing.
      */
-    def isStanding: Boolean = ???
+    def isStanding: Boolean = b1.row == b2.row && b1.col == b2.col
 
     /**
      * Returns `true` if the block is entirely inside the terrain.
      */
-    def isLegal: Boolean = ???
+    def isLegal: Boolean = terrain(b1) && terrain(b2)
   }
 }
