@@ -82,10 +82,11 @@ trait EncoderInstances {
 
   /** An encoder for `String` values */
   implicit val stringEncoder: Encoder[String] =
-    ??? // TODO Implement the `Encoder[String]` instance
+    Encoder.fromFunction(str => Json.Str(str))
 
   /** An encoder for `Boolean` values */
-  // TODO Define an implicit value of type `Encoder[Boolean]`
+  implicit val boolEncoder: Encoder[Boolean] =
+    Encoder.fromFunction(b => Json.Bool(b))
 
   /**
     * Encodes a list of values of type `A` into a JSON array containing
@@ -187,13 +188,16 @@ trait DecoderInstances {
     Decoder.fromPartialFunction { case Json.Null => () }
 
   /** A decoder for `Int` values. Hint: use the `isValidInt` method of `BigDecimal`. */
-  // TODO Define an implicit value of type `Decoder[Int]`
+  implicit val intDecoder: Decoder[Int] =
+    Decoder.fromPartialFunction { case x: Json.Num if x.value.isValidInt => x.value.toInt }
 
   /** A decoder for `String` values */
-  // TODO Define an implicit value of type `Decoder[String]`
+  implicit val stringDecoder: Decoder[String] =
+    Decoder.fromPartialFunction { case x: Json.Str => x.value }
 
   /** A decoder for `Boolean` values */
-  // TODO Define an implicit value of type `Decoder[Boolean]`
+  implicit val boolDecoder: Decoder[Boolean] =
+    Decoder.fromPartialFunction { case x: Json.Bool => x.value }
 
   /**
     * A decoder for JSON arrays. It decodes each item of the array
@@ -202,7 +206,8 @@ trait DecoderInstances {
     */
   implicit def listDecoder[A](implicit decoder: Decoder[A]): Decoder[List[A]] =
     Decoder.fromFunction {
-      ???
+      case x: Json.Arr => try { Some(x.items map { decoder.decode(_).get }) } catch { case _: NoSuchElementException => None }
+      case _ => None
     }
 
   /**
@@ -210,7 +215,7 @@ trait DecoderInstances {
     * the supplied `name` using the given `decoder`.
     */
   def field[A](name: String)(implicit decoder: Decoder[A]): Decoder[A] =
-    ???
+    Decoder.fromPartialFunction { case x: Json.Obj => decoder.decode(x.fields(name)).get }
 
 }
 
@@ -228,7 +233,9 @@ trait PersonCodecs {
 
   /** The corresponding decoder for `Person` */
   implicit val personDecoder: Decoder[Person] =
-    ???
+    Decoder.field[String]("name")
+      .zip(Decoder.field[Int]("age"))
+      .transform[Person]({ case (name, age) => new Person(name, age) })
 
 }
 
@@ -238,10 +245,15 @@ object Contacts extends ContactsCodecs
 
 trait ContactsCodecs {
 
-  // TODO Define the encoder and the decoder for `Contacts`
-  // The JSON representation of a value of type `Contacts` should be
-  // a JSON object with a single field named “people” containing an
-  // array of values of type `Person` (reuse the `Person` codecs)
+  /** The encoder for `Contacts` */
+  implicit val contactsEncoder: Encoder[Contacts] =
+    ObjectEncoder.field[List[Person]]("people")
+      .transform[Contacts](people => people.people)
+
+  /** The corresponding decoder for `Contacts` */
+  implicit val contactsDecoder: Decoder[Contacts] =
+    Decoder.field[List[Person]]("people")
+      .transform[Contacts]( persons => new Contacts(persons) )
 
 }
 
