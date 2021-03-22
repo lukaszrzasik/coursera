@@ -1,5 +1,6 @@
 package scalashop
 
+import java.util.concurrent._
 import org.scalameter._
 
 object HorizontalBoxBlurRunner {
@@ -40,9 +41,15 @@ object HorizontalBoxBlur extends HorizontalBoxBlurInterface {
    *  Within each row, `blur` traverses the pixels by going from left to right.
    */
   def blur(src: Img, dst: Img, from: Int, end: Int, radius: Int): Unit = {
-  // TODO implement this method using the `boxBlurKernel` method
-
-  ???
+    var yc = from
+    while (yc < end) {
+      var xc = 0
+      while (xc < src.width) {
+        dst.update(xc, yc, boxBlurKernel(src, xc, yc, radius))
+        xc += 1
+      }
+      yc += 1
+    }
   }
 
   /** Blurs the rows of the source image in parallel using `numTasks` tasks.
@@ -52,9 +59,18 @@ object HorizontalBoxBlur extends HorizontalBoxBlurInterface {
    *  rows.
    */
   def parBlur(src: Img, dst: Img, numTasks: Int, radius: Int): Unit = {
-  // TODO implement using the `task` construct and the `blur` method
-
-  ???
+    def run_tasks(start_end_pairs: IndexedSeq[(Int, Int)], tasks: List[ForkJoinTask[Unit]]): List[ForkJoinTask[Unit]] = {
+      start_end_pairs match {
+        case IndexedSeq() => tasks
+        case (from, _) +: IndexedSeq() => run_tasks(start_end_pairs.tail, task(blur(src, dst, from, src.height, radius)) :: tasks)
+        case (from, end) +: _ => run_tasks(start_end_pairs.tail, task(blur(src, dst, from, end, radius)) :: tasks)
+      }
+    }
+    val froms = 0 to src.height by ((src.height / numTasks) max 1)
+    val start_end_pairs = froms zip froms.tail
+    val tasks = run_tasks(start_end_pairs, Nil)
+    for (task <- tasks) {
+      task.join()
+    }
   }
-
 }

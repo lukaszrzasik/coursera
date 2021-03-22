@@ -1,5 +1,6 @@
 package scalashop
 
+import java.util.concurrent._
 import org.scalameter._
 
 object VerticalBoxBlurRunner {
@@ -42,8 +43,15 @@ object VerticalBoxBlur extends VerticalBoxBlurInterface {
    *  bottom.
    */
   def blur(src: Img, dst: Img, from: Int, end: Int, radius: Int): Unit = {
-    // TODO implement this method using the `boxBlurKernel` method
-    ???
+    var yc = 0
+    while (yc < src.height) {
+      var xc = from
+      while (xc < end) {
+        dst.update(xc, yc, boxBlurKernel(src, xc, yc, radius))
+        xc += 1
+      }
+      yc += 1
+    }
   }
 
   /** Blurs the columns of the source image in parallel using `numTasks` tasks.
@@ -53,8 +61,18 @@ object VerticalBoxBlur extends VerticalBoxBlurInterface {
    *  columns.
    */
   def parBlur(src: Img, dst: Img, numTasks: Int, radius: Int): Unit = {
-    // TODO implement using the `task` construct and the `blur` method
-    ???
+    def run_tasks(start_end_pairs: IndexedSeq[(Int, Int)], tasks: List[ForkJoinTask[Unit]]): List[ForkJoinTask[Unit]] = {
+      start_end_pairs match {
+        case IndexedSeq() => tasks
+        case (from, _) +: IndexedSeq() => run_tasks(start_end_pairs.tail, task(blur(src, dst, from, src.width, radius)) :: tasks)
+        case (from, end) +: _ => run_tasks(start_end_pairs.tail, task(blur(src, dst, from, end, radius)) :: tasks)
+      }
+    }
+    val froms = 0 to src.width by ((src.width / numTasks) max 1)
+    val start_end_pairs = froms zip froms.tail
+    val tasks = run_tasks(start_end_pairs, Nil)
+    for (task <- tasks) {
+      task.join()
+    }
   }
-
 }
