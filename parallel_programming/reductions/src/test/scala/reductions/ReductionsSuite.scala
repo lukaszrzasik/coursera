@@ -13,9 +13,18 @@ class ReductionsSuite {
 
   import LineOfSight._
   @Test def `lineOfSight should correctly handle an array of size 4`: Unit = {
-    val output = new Array[Float](4)
+    var output = new Array[Float](4)
     lineOfSight(Array[Float](0f, 1f, 8f, 9f), output)
     assertEquals(List(0f, 1f, 4f, 4f), output.toList)
+    output = new Array[Float](2)
+    parLineOfSight(Array[Float](0f, 1f), output, 1)
+    assertEquals(List(0f, 1f), output.toList)
+    output = new Array[Float](3)
+    parLineOfSight(Array[Float](0f, 1f, 8f), output, 1)
+    assertEquals(List(0f, 1f, 4f), output.toList)
+    output = new Array[Float](6)
+    parLineOfSight(Array[Float](0f, 1f, 8f, 9f, 20f, 8f), output, 1)
+    assertEquals(List(0f, 1f, 4f, 4f, 5f, 5f), output.toList)
   }
 
 
@@ -26,6 +35,10 @@ class ReductionsSuite {
    *******************************/
 
   import ParallelCountChange._
+
+  def threshold(money: Int, coins: List[Int]): Boolean =
+    if (coins.length < 2 || money < 10) true
+    else false
 
   @Test def `countChange should return 0 for money < 0`: Unit = {
     def check(money: Int, coins: List[Int]) =
@@ -78,6 +91,57 @@ class ReductionsSuite {
     check(250, List(1, 2, 5, 10, 20, 50), 177863)
   }
 
+  @Test def `parallel countChange should return 0 for money < 0`: Unit = {
+    def check(money: Int, coins: List[Int]) =
+      assert(parCountChange(money, coins, threshold) == 0,
+        s"countChang($money, _) should be 0")
+
+    check(-1, List())
+    check(-1, List(1, 2, 3))
+    check(-Int.MinValue, List())
+    check(-Int.MinValue, List(1, 2, 3))
+  }
+
+  @Test def `parallel countChange should return 1 when money == 0`: Unit = {
+    def check(coins: List[Int]) =
+      assert(parCountChange(0, coins, threshold) == 1,
+        s"countChang(0, _) should be 1")
+
+    check(List())
+    check(List(1, 2, 3))
+    check(List.range(1, 100))
+  }
+
+  @Test def `parallel countChange should return 0 for money > 0 and coins = List()`: Unit = {
+    def check(money: Int) =
+      assert(parCountChange(money, List(), threshold) == 0,
+        s"countChang($money, List()) should be 0")
+
+    check(1)
+    check(Int.MaxValue)
+  }
+
+  @Test def `parallel countChange should work when there is only one coin`: Unit = {
+    def check(money: Int, coins: List[Int], expected: Int) =
+      assert(parCountChange(money, coins, threshold) == expected,
+        s"countChange($money, $coins) should be $expected")
+
+    check(1, List(1), 1)
+    check(2, List(1), 1)
+    check(1, List(2), 0)
+    check(Int.MaxValue, List(Int.MaxValue), 1)
+    check(Int.MaxValue - 1, List(Int.MaxValue), 0)
+  }
+
+  @Test def `parallel countChange should work for multi-coins`: Unit = {
+    def check(money: Int, coins: List[Int], expected: Int) =
+      assert(parCountChange(money, coins, threshold) == expected,
+        s"countChange($money, $coins) should be $expected")
+
+    check(50, List(1, 2, 5, 10), 341)
+    check(250, List(1, 2, 5, 10, 20, 50), 177863)
+  }
+
 
   /**********************************
    * PARALLEL PARENTHESES BALANCING *
@@ -86,17 +150,23 @@ class ReductionsSuite {
   import ParallelParenthesesBalancing._
 
   @Test def `balance should work for empty string`: Unit = {
-    def check(input: String, expected: Boolean) =
+    def check(input: String, expected: Boolean) = {
       assert(balance(input.toArray) == expected,
         s"balance($input) should be $expected")
+      assert(parBalance(input.toArray, 2) == expected,
+        s"parallel balance($input) should be $expected")
+    }
 
     check("", true)
   }
 
   @Test def `balance should work for string of length 1`: Unit = {
-    def check(input: String, expected: Boolean) =
+    def check(input: String, expected: Boolean) = {
       assert(balance(input.toArray) == expected,
         s"balance($input) should be $expected")
+      assert(parBalance(input.toArray, 2) == expected,
+        s"parallel balance($input) should be $expected")
+    }
 
     check("(", false)
     check(")", false)
@@ -104,9 +174,12 @@ class ReductionsSuite {
   }
 
   @Test def `balance should work for string of length 2`: Unit = {
-    def check(input: String, expected: Boolean) =
+    def check(input: String, expected: Boolean) = {
       assert(balance(input.toArray) == expected,
         s"balance($input) should be $expected")
+      assert(parBalance(input.toArray, 2) == expected,
+        s"parallel balance($input) should be $expected")
+    }
 
     check("()", true)
     check(")(", false)
@@ -116,6 +189,21 @@ class ReductionsSuite {
     check(".(", false)
     check("(.", false)
     check(").", false)
+  }
+
+  @Test def `balance should work for more complex strings`: Unit = {
+    def check(input: String, expected: Boolean) = {
+      assert(balance(input.toArray) == expected,
+        s"balance($input) should be $expected")
+      assert(parBalance(input.toArray, 2) == expected,
+        s"parallel balance($input) should be $expected")
+    }
+
+    check("(if (zero? x) max (/ 1 x))", true)
+    check("I told him (that it's not (yet) done). (But he wasn't listening)", true)
+    check("(o_()", false)
+    check(":-)", false)
+    check("())(", false)
   }
 
 
