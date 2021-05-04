@@ -44,11 +44,11 @@ class KMeans extends KMeansInterface {
   }
 
   def classify(points: Seq[Point], means: Seq[Point]): Map[Point, Seq[Point]] = {
-    ???
+     means.map((_, Seq.empty)).toMap ++ points.groupBy(findClosest(_, means))
   }
 
   def classify(points: ParSeq[Point], means: ParSeq[Point]): ParMap[Point, ParSeq[Point]] = {
-    ???
+     means.map((_, ParSeq.empty)).toMap ++ points.groupBy(findClosest(_, means))
   }
 
   def findAverage(oldMean: Point, points: Seq[Point]): Point = if (points.isEmpty) oldMean else {
@@ -76,29 +76,33 @@ class KMeans extends KMeansInterface {
   }
 
   def update(classified: Map[Point, Seq[Point]], oldMeans: Seq[Point]): Seq[Point] = {
-    ???
+    oldMeans.map((oldMean: Point) => findAverage(oldMean, classified(oldMean)))
   }
 
   def update(classified: ParMap[Point, ParSeq[Point]], oldMeans: ParSeq[Point]): ParSeq[Point] = {
-    ???
+    oldMeans.map((oldMean: Point) => findAverage(oldMean, classified(oldMean)))
   }
 
   def converged(eta: Double, oldMeans: Seq[Point], newMeans: Seq[Point]): Boolean = {
-    ???
+    oldMeans.zip(newMeans).forall{ case (m1, m2) => m1.squareDistance(m2) <= eta }
   }
 
   def converged(eta: Double, oldMeans: ParSeq[Point], newMeans: ParSeq[Point]): Boolean = {
-    ???
+    oldMeans.zip(newMeans).forall{ case (m1, m2) => m1.squareDistance(m2) <= eta }
   }
 
   @tailrec
   final def kMeans(points: Seq[Point], means: Seq[Point], eta: Double): Seq[Point] = {
-    if (???) kMeans(???, ???, ???) else ??? // your implementation need to be tail recursive
+    val newMeans = update(classify(points, means), means)
+    val areConverged = converged(eta, means, newMeans)
+    if (!areConverged) kMeans(points, newMeans, eta) else newMeans // your implementation need to be tail recursive
   }
 
   @tailrec
   final def kMeans(points: ParSeq[Point], means: ParSeq[Point], eta: Double): ParSeq[Point] = {
-    if (???) kMeans(???, ???, ???) else ??? // your implementation need to be tail recursive
+    val newMeans = update(classify(points, means), means)
+    val areConverged = converged(eta, means, newMeans)
+    if (!areConverged) kMeans(points, newMeans, eta) else newMeans // your implementation need to be tail recursive
   }
 }
 
@@ -113,6 +117,10 @@ class Point(val x: Double, val y: Double, val z: Double) {
   }
   private def round(v: Double): Double = (v * 100).toInt / 100.0
   override def toString = s"(${round(x)}, ${round(y)}, ${round(z)})"
+  override def equals(o: Any): Boolean = o match {
+    case p: Point => x.equals(p.x) && y.equals(p.y) && z.equals(p.z)
+    case _ => false
+  }
 }
 
 
