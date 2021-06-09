@@ -108,6 +108,117 @@ import FloatOps._
     assert(res, s"Body not found in the right sector")
   }
 
+  @Test def `Fork.insert(b) should insert recursively in the appropriate quadrant`: Unit = {
+    val b1 = new Body(123f, 18f, 26f, 0f, 0f)
+    val b2 = new Body(524.5f, 19.5f, 26.5f, 0f, 0f)
+    val b3 = new Body(245f, 19.4f, 29f, 0f, 0f)
+    val nw = Leaf(17.5f, 27.5f, 5f, Seq(b1, b2, b3))
+    val ne = Empty(22.5f, 27.5f, 5f)
+    val sw = Empty(17.5f, 32.5f, 5f)
+    val se = Empty(22.5f, 32.5f, 5f)
+    val quad = Fork(nw, ne, sw, se)
+    val b = new Body(123f, 18f, 26f, 0f, 0f)
+    val inserted = quad.insert(b)
+    inserted match {
+      case fork: Fork => fork.nw match {
+        case Fork(_, _, _, _) => {
+        }
+        case _ => fail("Leaf.insert() should have returned a Fork, was $newFork")
+      }
+      case _ =>
+        fail("Fork.insert() should have returned a Fork, was $inserted")
+    }
+  }
+
+  @Test def `'insert' should work correctly on a leaf with center (1,1) and size 2`: Unit = {
+    val b1 = new Body(245f, 0.4f, 0.4f, 0f, 0f)
+    val quad = Leaf(1f, 1f, 2f, Seq(b1))
+    val b = new Body(123f, 1.4f, 1.4f, 0f, 0f)
+    val inserted = quad.insert(b)
+    inserted match {
+      case fork: Fork =>
+        println(fork)
+      case _ =>
+        fail("Fork.insert() should have returned a Fork, was $inserted")
+    }
+  }
+
+  @Test def `Fork with 4 empty quadrants`: Unit = {
+    val fork = new Fork(new Empty(5f, 5f, 10f), new Empty(15f, 5f, 10f), new Empty(5f, 15f, 10f), new Empty(15f, 15f, 10f))
+    val b = new Body(10f, 2.5f, 2.5f, 0f, 0f)
+    val inserter = fork.insert(b)
+    assert(inserter.mass == 10f)
+    assert(inserter.massX == 2.5f)
+    assert(inserter.massY == 2.5f)
+  }
+
+  @Test def `basic test for SectorMatrix.+=`: Unit = {
+    val b1 = new Body(123f, 18f, 26f, 0f, 0f)
+    val b2 = new Body(524.5f, 19.5f, 26.5f, 0f, 0f)
+    val b3 = new Body(245f, 19.4f, 29f, 0f, 0f)
+    val boundaries = new Boundaries()
+    boundaries.minX = 1
+    boundaries.minY = 1
+    boundaries.maxX = 97
+    boundaries.maxY = 97
+    val sm = new SectorMatrix(boundaries, SECTOR_PRECISION)
+    sm += b1
+    sm += b2
+    sm += b3
+  }
+
+  @Test def `basic test for SectorMatrix.combine`: Unit = {
+    val b1 = new Body(123f, 18f, 26f, 0f, 0f)
+    val b2 = new Body(524.5f, 19.5f, 26.5f, 0f, 0f)
+    val b3 = new Body(245f, 19.4f, 29f, 0f, 0f)
+    val b4 = new Body(123f, 1.4f, 1.4f, 0f, 0f)
+    val b5 = new Body(123f, 50.4f, 24.8f, 0f, 0f)
+    val b6 = new Body(123f, 24.8f, 50.4f, 0f, 0f)
+    val boundaries = new Boundaries()
+    boundaries.minX = 1
+    boundaries.minY = 1
+    boundaries.maxX = 97
+    boundaries.maxY = 97
+    val sm1 = new SectorMatrix(boundaries, SECTOR_PRECISION)
+    val sm2 = new SectorMatrix(boundaries, SECTOR_PRECISION)
+    val sm3 = new SectorMatrix(boundaries, SECTOR_PRECISION)
+    sm1 += b1
+    sm1 += b2
+    sm2 += b3
+    sm2 += b4
+    sm3 += b5
+    sm3 += b6
+    val sm = sm1.combine(sm2.combine(sm3))
+    println(sm)
+  }
+
+  @Test def `basic test for computeSectorMatrix`: Unit = {
+    val model = new SimulationModel
+    val simulator = new Simulator(model.taskSupport, model.timeStats)
+    val b1 = new Body(123f, 18f, 26f, 0f, 0f)
+    val b2 = new Body(524.5f, 19.5f, 26.5f, 0f, 0f)
+    val b3 = new Body(245f, 19.4f, 29f, 0f, 0f)
+    val bodies = Seq(b1, b2, b3)
+    val boundaries = new Boundaries()
+    boundaries.minX = 1
+    boundaries.minY = 1
+    boundaries.maxX = 97
+    boundaries.maxY = 97
+    val sm = simulator.computeSectorMatrix(bodies, boundaries)
+    println(sm)
+  }
+
+  @Test def `basic test for computeBoundaries`: Unit = {
+    val model = new SimulationModel
+    val simulator = new Simulator(model.taskSupport, model.timeStats)
+    val b1 = new Body(123f, 18f, 26f, 0f, 0f)
+    val b2 = new Body(524.5f, 19.5f, 26.5f, 0f, 0f)
+    val b3 = new Body(245f, 19.4f, 29f, 0f, 0f)
+    val bodies = Seq(b1, b2, b3)
+    val boundaries = simulator.computeBoundaries(bodies)
+    println(boundaries)
+  }
+
   @Rule def individualTestTimeout = new org.junit.rules.Timeout(10 * 1000)
 }
 
