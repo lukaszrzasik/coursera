@@ -77,7 +77,9 @@ class StackOverflow extends StackOverflowInterface with Serializable {
 
   /** Group the questions and answers together */
   def groupedPostings(postings: RDD[Posting]): RDD[(QID, Iterable[(Question, Answer)])] = {
-    ???
+    val questions = postings.filter(_.postingType == 1).map(posting => (posting.id, posting))
+    val answers = postings.filter(_.postingType == 2).map(posting => (posting.parentId.get, posting))
+    questions.join(answers).groupByKey
   }
 
 
@@ -96,7 +98,7 @@ class StackOverflow extends StackOverflowInterface with Serializable {
       highScore
     }
 
-    ???
+    grouped.map({ case (qid, qas) => (qas.head._1, answerHighScore(qas.map(_._2).toArray))})
   }
 
 
@@ -116,7 +118,7 @@ class StackOverflow extends StackOverflowInterface with Serializable {
       }
     }
 
-    ???
+    scored.map({ case (question, score) => (firstLangInTag(question.tags, langs).get * langSpread, score) })
   }
 
 
@@ -171,7 +173,11 @@ class StackOverflow extends StackOverflowInterface with Serializable {
 
   /** Main kmeans computation */
   @tailrec final def kmeans(means: Array[(Int, Int)], vectors: RDD[(Int, Int)], iter: Int = 1, debug: Boolean = false): Array[(Int, Int)] = {
-    val newMeans = means.clone() // you need to compute newMeans
+    var newMeans = means.clone()
+    val idxVectors = vectors.groupBy(findClosest(_, means)).mapValues(averageVectors(_))
+    for ((index, average) <- idxVectors.collect) {
+        newMeans.update(index, average)
+    }
 
     // TODO: Fill in the newMeans array
     val distance = euclideanDistance(means, newMeans)
@@ -274,10 +280,16 @@ class StackOverflow extends StackOverflowInterface with Serializable {
     val closestGrouped = closest.groupByKey()
 
     val median = closestGrouped.mapValues { vs =>
-      val langLabel: String   = ??? // most common language in the cluster
-      val langPercent: Double = ??? // percent of the questions in the most common language
-      val clusterSize: Int    = ???
-      val medianScore: Int    = ???
+      val groupedByLangIndex = vs.groupBy(_._1)
+      val mostCommonLangIndex = groupedByLangIndex.mapValues(_.size).maxBy(_._2)._1
+      val langLabel: String   = langs(mostCommonLangIndex / langSpread) // most common language in the cluster
+      val langPercent: Double = groupedByLangIndex(mostCommonLangIndex).size.toDouble / vs.size * 100 // percent of the questions in the most common language
+      val clusterSize: Int    = vs.size
+      val medianScore: Int    = {
+        val sorted = vs.toSeq.sortBy(_._2)
+        if (clusterSize % 2 == 0) (sorted((clusterSize - 1) / 2)._2 + sorted(clusterSize / 2)._2) / 2
+        else sorted(clusterSize / 2)._2
+      }
 
       (langLabel, langPercent, clusterSize, medianScore)
     }
