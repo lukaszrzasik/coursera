@@ -1,5 +1,7 @@
 package timeusage
 
+import scala.annotation.tailrec
+
 import org.apache.spark.sql._
 import org.apache.spark.sql.types._
 
@@ -43,7 +45,7 @@ object TimeUsage extends TimeUsageInterface {
     * @param line Raw fields
     */
   def row(line: List[String]): Row =
-    ???
+    Row.fromSeq(line.head.toString :: line.tail.map(_.toDouble))
 
   /** @return The initial data frame columns partitioned in three groups: primary needs (sleeping, eating, etc.),
     *         work and other (leisure activities)
@@ -61,7 +63,32 @@ object TimeUsage extends TimeUsageInterface {
     *    “t10”, “t12”, “t13”, “t14”, “t15”, “t16” and “t18” (those which are not part of the previous groups only).
     */
   def classifiedColumns(columnNames: List[String]): (List[Column], List[Column], List[Column]) = {
-    ???
+    @tailrec def classifiedColumnsAcc(columnNames: List[String], acc: (List[Column], List[Column], List[Column])): (List[Column], List[Column], List[Column]) =
+      if (columnNames.isEmpty) acc
+      else if (columnNames.head.startsWith("t01") ||
+               columnNames.head.startsWith("t03") ||
+               columnNames.head.startsWith("t11") ||
+               columnNames.head.startsWith("t1801") ||
+               columnNames.head.startsWith("t1803")) classifiedColumnsAcc(columnNames.tail, (col(columnNames.head) :: acc._1, acc._2, acc._3))
+      else if (columnNames.head.startsWith("t05") ||
+               columnNames.head.startsWith("t1805")) classifiedColumnsAcc(columnNames.tail, (acc._1, col(columnNames.head) :: acc._2, acc._3))
+      else if (columnNames.head.startsWith("t02") ||
+               columnNames.head.startsWith("t04") ||
+               columnNames.head.startsWith("t06") ||
+               columnNames.head.startsWith("t07") ||
+               columnNames.head.startsWith("t08") ||
+               columnNames.head.startsWith("t09") ||
+               columnNames.head.startsWith("t10") ||
+               columnNames.head.startsWith("t10") ||
+               columnNames.head.startsWith("t12") ||
+               columnNames.head.startsWith("t13") ||
+               columnNames.head.startsWith("t14") ||
+               columnNames.head.startsWith("t15") ||
+               columnNames.head.startsWith("t16") ||
+               columnNames.head.startsWith("t18")) classifiedColumnsAcc(columnNames.tail, (acc._1, acc._2, col(columnNames.head) :: acc._3))
+      else classifiedColumnsAcc(columnNames.tail, (acc._1, acc._2, acc._3))
+
+    classifiedColumnsAcc(columnNames, (Nil, Nil, Nil))
   }
 
   /** @return a projection of the initial DataFrame such that all columns containing hours spent on primary needs
@@ -104,17 +131,17 @@ object TimeUsage extends TimeUsageInterface {
     // more sense for our use case
     // Hint: you can use the `when` and `otherwise` Spark functions
     // Hint: don’t forget to give your columns the expected name with the `as` method
-    val workingStatusProjection: Column = ???
-    val sexProjection: Column = ???
-    val ageProjection: Column = ???
+    val workingStatusProjection: Column = when(df("telfs") >= 1 && df("telfs") < 3, "working").otherwise("not working").as("working")
+    val sexProjection: Column = when(df("tesex") === 1, "male").otherwise("female").as("sex")
+    val ageProjection: Column = when(df("teage") >= 15 && df("teage") <= 22, "young").when(df("teage") >= 23 && df("teage") <= 55, "active").otherwise("elder").as("age")
 
     // Create columns that sum columns of the initial dataset
     // Hint: you want to create a complex column expression that sums other columns
     //       by using the `+` operator between them
     // Hint: don’t forget to convert the value to hours
-    val primaryNeedsProjection: Column = ???
-    val workProjection: Column = ???
-    val otherProjection: Column = ???
+    val primaryNeedsProjection: Column = (primaryNeedsColumns.fold(lit(0))(_ + _) / 60D).as("primaryNeeds")
+    val workProjection: Column = (workColumns.fold(lit(0))(_ + _) / 60D).as("work")
+    val otherProjection: Column = (otherColumns.fold(lit(0))(_ + _) / 60D).as("other")
     df
       .select(workingStatusProjection, sexProjection, ageProjection, primaryNeedsProjection, workProjection, otherProjection)
       .where($"telfs" <= 4) // Discard people who are not in labor force
@@ -138,7 +165,11 @@ object TimeUsage extends TimeUsageInterface {
     * Finally, the resulting DataFrame should be sorted by working status, sex and age.
     */
   def timeUsageGrouped(summed: DataFrame): DataFrame = {
-    ???
+    summed.groupBy("working", "sex", "age").agg(
+      round(avg($"primaryNeeds"), 1),
+      round(avg($"work"), 1),
+      round(avg($"other"), 1)
+    ).sort("working", "sex", "age")
   }
 
   /**
@@ -155,7 +186,7 @@ object TimeUsage extends TimeUsageInterface {
     * @param viewName Name of the SQL view to use
     */
   def timeUsageGroupedSqlQuery(viewName: String): String =
-    ???
+    "SELECT working, sex, age, round(avg(primaryNeeds), 1), round(avg(work), 1), round(avg(other), 1) FROM " + viewName + " GROUP BY working, sex, age ORDER BY working, sex, age"
 
   /**
     * @return A `Dataset[TimeUsageRow]` from the “untyped” `DataFrame`
@@ -165,7 +196,7 @@ object TimeUsage extends TimeUsageInterface {
     * cast them at the same time.
     */
   def timeUsageSummaryTyped(timeUsageSummaryDf: DataFrame): Dataset[TimeUsageRow] =
-    ???
+    timeUsageSummaryDf.as[TimeUsageRow]
 
   /**
     * @return Same as `timeUsageGrouped`, but using the typed API when possible
@@ -180,7 +211,14 @@ object TimeUsage extends TimeUsageInterface {
     */
   def timeUsageGroupedTyped(summed: Dataset[TimeUsageRow]): Dataset[TimeUsageRow] = {
     import org.apache.spark.sql.expressions.scalalang.typed
-    ???
+    val grouped = summed.groupByKey((row: TimeUsageRow) => (row.working, row.sex, row.age)).agg(
+      round(typed.avg{ r: TimeUsageRow => r.primaryNeeds }, 1).as[Double],
+      round(typed.avg{ r: TimeUsageRow => r.work }, 1).as[Double],
+      round(typed.avg{ r: TimeUsageRow => r.other }, 1).as[Double]
+    )
+    grouped.map{ _ match {
+      case ((working, sex, age), primaryNeeds, work, other) => new TimeUsageRow(working, sex, age, primaryNeeds, work, other)
+    }}.sort("working", "sex", "age")
   }
 }
 
