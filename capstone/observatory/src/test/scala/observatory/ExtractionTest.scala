@@ -8,5 +8,16 @@ trait ExtractionTest extends MilestoneSuite {
 
   // Implement tests for the methods of the `Extraction` object
 
+  @Test def `test locateTemperature`: Unit = {
+    val result = Extraction.locateTemperatures(2000, "/stations.csv", "/2000.csv")
+    println(result.take(20))
+  }
+
+  @Test def `test locationYearlyAverageRecords`: Unit = {
+    import Extraction._
+
+    val result = Extraction.locationYearlyAverageRecords(locateTemperatures(2000, "/stations.csv", "/2000.csv"))
+    println(result.take(20))
+  }
 
 }
