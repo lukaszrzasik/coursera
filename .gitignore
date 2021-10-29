@@ -35,3 +35,8 @@ spark/timeusage/project/target/
 spark/timeusage/src/main/resources/
 spark/timeusage/src/test/resources/
 spark/timeusage/target/
+capstone/observatory/capstone-ui/target/
+capstone/observatory/project/project/
+capstone/observatory/project/target/
+capstone/observatory/src/main/resources/
+capstone/observatory/target/
