@@ -10,7 +10,8 @@ trait ExtractionTest extends MilestoneSuite {
 
   @Test def `test locateTemperature`: Unit = {
     val result = Extraction.locateTemperatures(2000, "/stations.csv", "/2000.csv")
-    println(result.take(20))
+    println("locateTemperature result:")
+    result.take(20).foreach{ i => println(i.toString) }
   }
 
   @Test def `test locationYearlyAverageRecords`: Unit = {
