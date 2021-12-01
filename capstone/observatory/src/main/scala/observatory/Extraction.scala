@@ -27,6 +27,9 @@ package object so {
   * 1st milestone: data extraction
   */
 object Extraction extends ExtractionInterface {
+  
+  var excCounterLoc = 1
+  var excStringLoc = "lrzasik:\n"
 
   def writeFileToTemp(file: String): Path = {
     val tempFile = Files.createTempFile(null, null)
@@ -77,12 +80,22 @@ object Extraction extends ExtractionInterface {
     * @return A sequence containing triplets (date, location, temperature)
     */
   def locateTemperatures(year: Year, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Temperature)] = {
-    locateTemperaturesDF(year, stationsFile, temperaturesFile)
+//    locateTemperaturesDF(year, stationsFile, temperaturesFile)
+    locateTemperaturesPar(year, stationsFile, temperaturesFile)
   }
 
   def locateTemperaturesPar(year: Year, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Temperature)] = {
-    val stations = parseStationsCSV(stationsFile)
-    val temperatures = parseTemperaturesCSV(temperaturesFile)
+    val stations = parseStationsCSV(stationsFile).toList
+    val temperatures = parseTemperaturesCSV(temperaturesFile).toList
+
+    locateTemperaturesIt(year, stations, temperatures)
+  }
+
+  def locateTemperaturesIt(year: Year, stations: List[(Option[Int], Option[Int], Option[Double], Option[Double])], temperatures: List[(Option[Int], Option[Int], Option[Int], Option[Int], Option[Double])]): Iterable[(LocalDate, Location, Temperature)] = {
+//    excCounterLoc -= 1
+//    if (excCounterLoc < 100) excStringLoc += "locateTemperatures " + excCounterLoc + "\n" + year.toString + "\n" + stations.toList.toString + "\n" + temperatures.toList.toString + "\n"
+//    if (excCounterLoc < 1) throw new Exception(excStringLoc)
+
     val it = for {
       station <- stations if station._3 != None && station._4 != None
       temperature <- temperatures if station._1 == temperature._1 && station._2 == temperature._2

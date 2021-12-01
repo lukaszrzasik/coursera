@@ -13,19 +13,33 @@ object Visualization extends VisualizationInterface {
   val meanEarthRadius = 6371.009D
   val P = 1D
 
+  var excCounterPredict = 129603 //129602 //129603 //129600 //64800 //129603 //129604
+  var excStringPredict = "lrzasik:\n"
+
+  var excCounterInterpolate = 504 //503 //500 //505 //515 //530 //560 //750 //500 //1011 //4050 //8100 //16200 //32400 //64800
+  var excStringInterpolate = "lrzasik:\n"
+
+  var excCounterVis = 101 //100 //101 //102 //105 //110 //115 //130 //100 //80 //40 //20 //131 //132 //133 //10
+  var excStringVis = "lrzasik:\n"
+
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location
     * @param location Location where to predict the temperature
     * @return The predicted temperature at `location`
     */
   def predictTemperature(temperatures: Iterable[(Location, Temperature)], location: Location): Temperature = {
+//    if (excCounterPredict < 100)
+//      excStringPredict += "predictTemperature " + excCounterPredict + ", " + temperatures.toString + ", " + location.toString + "\n"
+//    excCounterPredict -= 1
+//    if (excCounterPredict < 1) throw new Exception(excStringPredict)
+
     predictTemperaturePar(temperatures, location)
   }
 
   def predictTemperaturePar(temperatures: Iterable[(Location, Temperature)], location: Location): Temperature = {
     val distancesPar = temperatures.par.map{ temp => (greatCircleDistance(temp._1, location), temp._1, temp._2) }
-    val exactMatchLocationPar = distancesPar.filter{ _._1 == 0 }
-    if (!exactMatchLocationPar.isEmpty) exactMatchLocationPar.head._3
+    val exactMatchLocation = distancesPar.find{ _._1 == 0 }
+    if (exactMatchLocation.isDefined) exactMatchLocation.get._3
     else {
       val distanceWeightsPar = distancesPar.map{ distance => (distanceWeight(distance._1), distance._2, distance._3) }
       distanceWeightsPar.aggregate(0D)(
@@ -69,6 +83,10 @@ object Visualization extends VisualizationInterface {
     * @return The color that corresponds to `value`, according to the color scale defined by `points`
     */
   def interpolateColor(points: Iterable[(Temperature, Color)], value: Temperature): Color = {
+//    excCounterInterpolate -= 1
+//    if (excCounterInterpolate < 100)
+//      excStringInterpolate += "interpolateColor " + excCounterInterpolate + ", " + points.toString + ", " + value + "\n"
+//    if (excCounterInterpolate < 1) throw new Exception(excStringInterpolate)
     interpolateColorPar(points, value)
   }
 
@@ -110,6 +128,11 @@ object Visualization extends VisualizationInterface {
     * @return A 360×180 image where each pixel shows the predicted temperature at its location
     */
   def visualize(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
+//    if (excCounterVis < 100)
+//      excStringVis += "visualize " + excCounterVis + ", " + temperatures.toString + ", " + colors.toString + "\n"
+//    excCounterVis -= 1
+//    if (excCounterVis < 1) throw new Exception(excStringVis)
+
     System.gc()
     val w = 360
     val h = 180
