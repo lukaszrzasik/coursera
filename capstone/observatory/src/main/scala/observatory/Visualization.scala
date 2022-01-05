@@ -37,7 +37,8 @@ object Visualization extends VisualizationInterface {
   }
 
   def predictTemperaturePar(temperatures: Iterable[(Location, Temperature)], location: Location): Temperature = {
-    val distancesPar = temperatures.par.map{ temp => (greatCircleDistance(temp._1, location), temp._1, temp._2) }
+    val distancesPar = temperatures //.par
+      .map{ temp => (greatCircleDistance(temp._1, location), temp._1, temp._2) }
     val exactMatchLocation = distancesPar.find{ _._1 == 0 }
     if (exactMatchLocation.isDefined) exactMatchLocation.get._3
     else {
@@ -87,11 +88,12 @@ object Visualization extends VisualizationInterface {
 //    if (excCounterInterpolate < 100)
 //      excStringInterpolate += "interpolateColor " + excCounterInterpolate + ", " + points.toString + ", " + value + "\n"
 //    if (excCounterInterpolate < 1) throw new Exception(excStringInterpolate)
+
     interpolateColorPar(points, value)
   }
 
   def interpolateColorPar(points: Iterable[(Temperature, Color)], value: Temperature): Color = {
-    val pointsPar = points.par
+    val pointsPar = points //.par
     val point1 = pointsPar.minBy(item => abs(value - item._1))
     val point2 = pointsPar.filter(_ != point1).minBy(item => abs(value - item._1))
     interpolateColorPoints(point1, point2, value)
@@ -142,19 +144,20 @@ object Visualization extends VisualizationInterface {
       convertToLocationColor(temperatures, colors)), w, h), w, h))
   }
 
-  def convertToLocationColor(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): ParIterable[(Location, Color)] = {
-    temperatures.par.map{ case (loc, temp) => (loc, interpolateColor(colors, temp)) }
+  def convertToLocationColor(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): /*Par*/ Iterable[(Location, Color)] = {
+    temperatures //.par
+      .map{ case (loc, temp) => (loc, interpolateColor(colors, temp)) }
   }
 
-  def convertToLocationPixel(locations: ParIterable[(Location, Color)]): ParIterable[(Location, Pixel)] = {
+  def convertToLocationPixel(locations: /*Par*/ Iterable[(Location, Color)]): /*Par*/ Iterable[(Location, Pixel)] = {
     locations.map{ case (loc, color) => (loc, Pixel(color.red, color.green, color.blue, 255)) }
   }
 
-  def convertToPixelPosition(pixels: ParIterable[(Location, Pixel)], width: Int, height: Int): ParIterable[((Int, Int), Pixel)] = {
+  def convertToPixelPosition(pixels: /*Par*/ Iterable[(Location, Pixel)], width: Int, height: Int): /*Par*/ Iterable[((Int, Int), Pixel)] = {
     pixels.map{ case (loc, pixel) => ((width / 2 + round(loc.lon).toInt, height / 2 - round(loc.lat).toInt), pixel) }
   }
 
-  def convertToPixelArray(pixels: ParIterable[((Int, Int), Pixel)], width: Int, height: Int): Array[Pixel] = {
+  def convertToPixelArray(pixels: /*Par*/ Iterable[((Int, Int), Pixel)], width: Int, height: Int): Array[Pixel] = {
     val arraySize = width * height
     val retPixels = Array.fill(arraySize)(Pixel(0, 0, 0, 0))
     for (pixel <- pixels) {

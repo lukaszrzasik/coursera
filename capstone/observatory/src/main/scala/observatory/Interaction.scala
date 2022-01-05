@@ -35,10 +35,10 @@ object Interaction extends InteractionInterface {
     * @return A 256×256 image showing the contents of the given tile
     */
   def tile(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)], tile: Tile): Image = {
-//    excTileCounter -= 1
-//    if (excTileCounter < 100)
-//      excTileString += "tile " + excTileCounter + ", " + temperatures.toString + ", " + colors.toString + ", " + tile.toString + "\n"
-//    if (excTileCounter < 1) throw new Exception(excTileString)
+    excTileCounter -= 1
+    if (excTileCounter < 100)
+      excTileString += "tile " + excTileCounter + ", " + temperatures.toString + ", " + colors.toString + ", " + tile.toString + "\n"
+    if (excTileCounter < 1) throw new Exception(excTileString)
 
     System.gc()
     tilePar(temperatures, colors, tile)
@@ -48,7 +48,7 @@ object Interaction extends InteractionInterface {
     import Visualization._
 
 //    println("lrzasik: starting getPixelTiles")
-    val pixelTiles = getPixelTiles(tile).par
+    val pixelTiles = getPixelTiles(tile) //.par
     val pixelArray = pixelTiles.map{ tile =>
 //      println("lrzasik: starting tileLocation, tile:" + tile)
       val location = tileLocation(tile)
@@ -84,7 +84,7 @@ object Interaction extends InteractionInterface {
     val initialX = tile.x
     val initialY = tile.y
     val newZoom =  (log(TileSize) / log(2) + tile.zoom).toInt
-    for (idx <- (0 until pixelTiles.size).par) {
+    for (idx <- (0 until pixelTiles.size) /*.par*/ ) {
       val newX = initialX * TileSize + idx % TileSize
       val newY = initialY * TileSize + idx / TileSize
       pixelTiles(idx) = Tile(newX, newY, newZoom)
@@ -95,7 +95,7 @@ object Interaction extends InteractionInterface {
   def upscaleArray(pixels: Array[Pixel]): Array[Pixel] = {
     val upscaled = new Array[Pixel](RealTileSize * RealTileSize)
     val multiplier = RealTileSize / TileSize
-    for (idx <- (0 until upscaled.size).par) {
+    for (idx <- (0 until upscaled.size) /*.par*/ ) {
       val uX = idx % RealTileSize
       val uY = idx / RealTileSize
       val oX = uX / multiplier
@@ -117,10 +117,10 @@ object Interaction extends InteractionInterface {
     generateImage: (Year, Tile, Data) => Unit
   ): Unit = {
     for {
-      (year, data) <- yearlyData.par
-      zoom <- (0 to MaxZoom).par
-      y <- (0 until pow(2, zoom).toInt).par
-      x <- (0 until pow(2, zoom).toInt).par
+      (year, data) <- yearlyData //.par
+      zoom <- (0 to MaxZoom) //.par
+      y <- (0 until pow(2, zoom).toInt) //.par
+      x <- (0 until pow(2, zoom).toInt) //.par
     } generateImage(year, Tile(x, y, zoom), data)
   }
 

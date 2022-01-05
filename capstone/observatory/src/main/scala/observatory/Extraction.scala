@@ -148,7 +148,7 @@ object Extraction extends ExtractionInterface {
   }
 
   def locationYearlyAverageRecordsPar(records: Iterable[(LocalDate, Location, Temperature)]): Iterable[(Location, Temperature)] = {
-   val par = records.par
+   val par = records //.par
      .map{ case (date, location, temp) => (location, (temp, 1)) }
      .groupBy(_._1)
      .mapValues{ _.reduce[(Location, (Double, Int))]{ case ((loc1, (temp1, counter1)), (loc2, (temp2, counter2))) => (loc1, (temp1 + temp2, counter1 + counter2)) } }
