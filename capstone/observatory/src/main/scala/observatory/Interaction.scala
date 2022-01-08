@@ -35,12 +35,12 @@ object Interaction extends InteractionInterface {
     * @return A 256×256 image showing the contents of the given tile
     */
   def tile(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)], tile: Tile): Image = {
-    excTileCounter -= 1
-    if (excTileCounter < 100)
-      excTileString += "tile " + excTileCounter + ", " + temperatures.toString + ", " + colors.toString + ", " + tile.toString + "\n"
-    if (excTileCounter < 1) throw new Exception(excTileString)
-
-    System.gc()
+//    excTileCounter -= 1
+//    if (excTileCounter < 100)
+//      excTileString += "tile " + excTileCounter + ", " + temperatures.toString + ", " + colors.toString + ", " + tile.toString + "\n"
+//    if (excTileCounter < 1) throw new Exception(excTileString)
+//
+//    System.gc()
     tilePar(temperatures, colors, tile)
   }
 
